@@ -1,8 +1,10 @@
 package br.com.alura.screenmatch.principal;
 
 import br.com.alura.screenmatch.model.*;
+import br.com.alura.screenmatch.repository.SerieRepository;
 import br.com.alura.screenmatch.service.ConsumoApi;
 import br.com.alura.screenmatch.service.ConverteDados;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -20,6 +22,12 @@ public class Principal {
     // Lista para armazenar as séries buscadas
     private List<DadosSerie> dadosSeries = new ArrayList<>();
 
+
+   private SerieRepository repositorio;
+
+    public Principal(SerieRepository repositorio) {
+   this.repositorio = repositorio;
+    }
 
     public void exibeMenu() {
         var opcao = -1; // Inicializa opcao com -1 para entrar no loop
@@ -67,7 +75,9 @@ public class Principal {
     // Método para buscar uma série na web e adicioná-la à lista
     private void buscarSerieWeb() {
         DadosSerie dados = getDadosSerie();
-        dadosSeries.add(dados); // Adiciona a série à lista
+        Serie serie = new Serie(dados);
+        //dadosSeries.add(dados);
+               repositorio.save(serie);            // Adiciona a série à lista
         System.out.println(dados);
     }
 
@@ -125,10 +135,7 @@ public class Principal {
 
     // Método para listar as séries que foram buscadas
     private void listarSeriesBuscadas() {
-        List<Serie> series = new ArrayList<>();
-        series = dadosSeries.stream()
-                .map(d -> new Serie(d))
-                .collect(Collectors.toList());
+        List<Serie> series = series =repositorio.findAll();
         series.stream()
                 .sorted(Comparator.comparing(Serie::getGenero))
                 .forEach(System.out::println);
