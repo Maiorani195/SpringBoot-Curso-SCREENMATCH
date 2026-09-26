@@ -40,6 +40,7 @@ public class Principal {
                     4 - Buscar série por titulo
                     5 - Buscar Série por ator
                     6 - Top 5 séries 
+                    7 - Buscar série por categoria
                     0 - Sair                                 
                     """;
 
@@ -68,6 +69,10 @@ public class Principal {
                     buscarTop5Series();
                     break;
 
+                case 7:
+                    buscarPorGenero();
+                    break;
+
                 case 0:
                     System.out.println("Saindo...");
                     break;
@@ -76,8 +81,6 @@ public class Principal {
             }
         }
     }
-
-
 
 
     // Método para obter os dados de uma série da web
@@ -179,7 +182,21 @@ public class Principal {
 
     }
 
+    private void buscarPorGenero() {
+        System.out.println("Qual categoria voce deseja buscar: ");
+        var nomeCategoria = leitura.nextLine();
+        Categoria categoria = Categoria.fromPortugues(nomeCategoria);
+    List<Serie>  seriePorCategoria= repositorio.findByGenero(categoria);
+        System.out.println("Series da categoria : " +" " + nomeCategoria);
+        seriePorCategoria.forEach(System.out::println);
+
+
+
+
     }
+
+
+}
 
 
 
