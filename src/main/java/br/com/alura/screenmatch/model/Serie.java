@@ -3,6 +3,7 @@ package br.com.alura.screenmatch.model;
 import br.com.alura.screenmatch.service.ConsultaChatGPT;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.persistence.*;
+import org.hibernate.engine.internal.Cascade;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,23 +19,33 @@ public class Serie {
     private String titulo;
     private Integer totalTemporadas;
     private Double avaliacao;
-  @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)
     private Categoria genero;
+    @Column(length = 500) // Aumentando o tamanho para atores
     private String atores;
+    @Column(length = 500) // Aumentando o tamanho para poster (URLs podem ser longas)
     private String poster;
+    @Column(length = 2000) // Aumentando o tamanho para sinopse
     private String sinopse;
 
-    @Transient
+    @OneToMany(mappedBy = "serie", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Episodio> episodios = new ArrayList<>();
 
-    public Serie(){
-
+    public Serie() {
+        // Construtor padrão exigido pelo JPA/Hibernate
     }
 
-    public Serie(DadosSerie dadosSerie){
+    public Serie(DadosSerie dadosSerie) {
         this.titulo = dadosSerie.titulo();
         this.totalTemporadas = dadosSerie.totalTemporadas();
-        this.avaliacao = OptionalDouble.of(Double.valueOf(dadosSerie.avaliacao())).orElse(0);
+
+        // CORREÇÃO: Tratamento para "N/A" na avaliação
+        if (dadosSerie.avaliacao() != null && !dadosSerie.avaliacao().equalsIgnoreCase("N/A")) {
+            this.avaliacao = Double.valueOf(dadosSerie.avaliacao());
+        } else {
+            this.avaliacao = 0.0; // Valor padrão para quando a avaliação for "N/A" ou nula
+        }
+
         this.genero = Categoria.fromString(dadosSerie.genero().split(",")[0].trim());
         this.atores = dadosSerie.atores();
         this.poster = dadosSerie.poster();
@@ -46,6 +57,8 @@ public class Serie {
     }
 
     public void setEpisodios(List<Episodio> episodios) {
+
+        episodios.forEach(e -> e.setSerie(this));
         this.episodios = episodios;
     }
 
@@ -115,19 +128,14 @@ public class Serie {
 
     @Override
     public String toString() {
-    return      "genero=" + genero +
-
-            ",titulo='" + titulo + '\'' +
-
-                ", totalTemporadas=" + totalTemporadas +
-
-                ", avaliacao=" + avaliacao +
-
-        ", atores='" + atores + '\'' +
-
-               ", poster='" + poster + '\'' +
-
-                ", sinopse='" + sinopse + '\'' ;
-
+        return
+                "genero=" + genero +
+                        ", titulo='" + titulo + '\'' +
+                        ", totalTemporadas=" + totalTemporadas +
+                        ", avaliacao=" + avaliacao +
+                        ", atores='" + atores + '\'' +
+                        ", poster='" + poster + '\'' +
+                        ", sinopse='" + sinopse + '\'' +
+                        ", episodios='" + episodios + '\'';
     }
 }

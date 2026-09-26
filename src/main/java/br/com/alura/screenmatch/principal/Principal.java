@@ -24,6 +24,7 @@ public class Principal {
 
 
    private SerieRepository repositorio;
+   private List<Serie> series = new ArrayList<>();
 
     public Principal(SerieRepository repositorio) {
    this.repositorio = repositorio;
@@ -83,59 +84,43 @@ public class Principal {
 
     // Método para buscar episódios de uma série
     private void buscarEpisodioPorSerie() {
-        System.out.println("Digite o nome da série para buscar os episódios: ");
-        var nomesSerie = leitura.nextLine();
-        var json = consumo.obterDados(ENDERECO + nomesSerie.replace(" ", "+") + API_KEY);
-        DadosSerie dados = conversor.obterDados(json, DadosSerie.class);
+        listarSeriesBuscadas();
+        System.out.println("Escolha uma série pelo nome");
+        var nomeSerie = leitura.nextLine();
 
-        List<DadosTemporada> temporadas = new ArrayList<>();
-
-        for (int i = 1; i <= dados.totalTemporadas(); i++) {
-            json = consumo.obterDados(ENDERECO + nomesSerie.replace(" ", "+") + "&season=" + i + API_KEY);
-            DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
-            temporadas.add(dadosTemporada);
-        }
-
-        // Lógica para processar e exibir episódios
-        List<Episodio> episodios = temporadas.stream()
-                .flatMap(t -> t.episodios().stream()
-                        .map(d -> new Episodio(t.numero(), d))
-                )
-                .collect(Collectors.toList());
-
-        episodios.forEach(System.out::println);
-
-        // Lógica para buscar episódio por trecho do título
-        System.out.println("Digite um trecho do titulo do episódio: ");
-        var trechoTitulo = leitura.nextLine();
-        Optional<Episodio> episodioBuscado = episodios.stream()
-                .filter(e -> e.getTitulo().toUpperCase().contains(trechoTitulo.toUpperCase()))
+        Optional<Serie> serie = series.stream()
+                .filter(s -> s.getTitulo().toLowerCase().contains(nomeSerie.toLowerCase()))
                 .findFirst();
 
-        if (episodioBuscado.isPresent()) {
-            System.out.println("Episódio Encontrado: ");
-            System.out.println("Temporada: " + episodioBuscado.get().getTemporada());
-        } else {
-            System.out.println("Episódio não encontrado.");
-        }
+        if (serie.isPresent()) {
+            var serieEncontrada = serie.get();
+            List<DadosTemporada> temporadas = new ArrayList<>();
 
-        // Se você tinha outras lógicas como Top 10 episódios ou busca por ano,
-        // elas podem ser adicionadas aqui ou em novos métodos.
-        // Por exemplo, o trecho comentado do Top 10:
-        /*
-        System.out.println("\n Top 10 episódios");
-        episodios.stream()
-                .filter(e -> e.getAvaliacao() != null && !e.getAvaliacao().equalsIgnoreCase("N/A"))
-                .sorted(Comparator.comparing(Episodio::getAvaliacao).reversed())
-                .limit(10)
-                .map(e -> e.getTitulo().toUpperCase())
-                .forEach(System.out::println);
-        */
+            for (int i = 1; i <= serieEncontrada.getTotalTemporadas(); i++) {
+                var json = consumo.obterDados(ENDERECO + serieEncontrada.getTitulo().replace(" ", "+") + "&season=" + i + API_KEY);
+                DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
+                temporadas.add(dadosTemporada);
+            }
+
+            List<Episodio> episodios = temporadas.stream()
+                    .flatMap(d -> d.episodios().stream()
+                            .map(e -> new Episodio(d.numero(), e)))
+                    .collect(Collectors.toList());
+
+            serieEncontrada.setEpisodios(episodios);
+            repositorio.save(serieEncontrada);
+
+            System.out.println("Episódios da série " + serieEncontrada.getTitulo() + " salvos com sucesso!");
+
+        } else {
+            System.out.println("Série não encontrada!");
+        }
     }
+
 
     // Método para listar as séries que foram buscadas
     private void listarSeriesBuscadas() {
-        List<Serie> series = series =repositorio.findAll();
+        series = series =repositorio.findAll();
         series.stream()
                 .sorted(Comparator.comparing(Serie::getGenero))
                 .forEach(System.out::println);
